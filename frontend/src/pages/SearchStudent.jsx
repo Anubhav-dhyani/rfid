@@ -5,6 +5,7 @@ import Feedback from '../components/Feedback';
 import ScannerInput from '../components/ScannerInput';
 import StudentModal from '../components/StudentModal';
 import { api } from '../lib/api';
+import { usePhoneNfc } from '../lib/usePhoneNfc';
 
 export default function SearchStudent() {
   const location = useLocation();
@@ -16,6 +17,7 @@ export default function SearchStudent() {
   const captureAfter = useRef(Date.now());
   const redirectHandled = useRef(false);
   const search = async (value) => { setError(''); try { setStudent(await api.searchIdentity(type, value)); } catch (e) { setError(e.message); } };
+  const phoneNfc = usePhoneNfc((uid) => api.searchIdentity('rfid', uid).then(setStudent).catch((e) => setError(e.message)));
 
   useEffect(() => {
     if (!redirectedSearch || redirectHandled.current) return;
@@ -48,6 +50,7 @@ export default function SearchStudent() {
   }, [type]);
 
   const changeType = (nextType) => {
+    phoneNfc.stop();
     captureAfter.current = Date.now();
     setType(nextType);
     setStudent(null);
@@ -67,8 +70,9 @@ export default function SearchStudent() {
   return <><div className="page-title"><div><span className="eyebrow">Instant lookup</span><h1>Search student</h1><p>Scan either identity and open the complete student profile.</p></div></div>
     <Feedback type="success" message={success} onClose={() => setSuccess('')} />
     <section className="search-hero"><div className="search-art"><SearchIcon /></div><div className="type-switch"><button className={type === 'barcode' ? 'active' : ''} onClick={() => changeType('barcode')}><Barcode />Barcode</button><button className={type === 'rfid' ? 'active' : ''} onClick={() => changeType('rfid')}><Radio />RFID card</button></div>
-      {type === 'rfid' && <div className={`reader-status ${reader.connected ? 'connected' : 'disconnected'}`}><div>{reader.connected ? <Radio /> : <Usb />}<span><strong>{reader.connected ? 'ACR122U connected' : 'NFC reader offline'}</strong><small>{reader.connected ? 'Tap a mapped card to open the student profile automatically.' : reader.error || 'Connect the reader and start the reader agent on this computer.'}</small></span></div><b>{reader.connected ? 'Waiting for card' : 'Offline'}</b></div>}
-      <ScannerInput key={type} label={`Scan ${type === 'rfid' ? 'RFID card' : 'barcode'}`} hint={type === 'rfid' && reader.connected ? 'The ACR122U will capture the UID automatically' : 'The student profile opens automatically after submit'} placeholder={type === 'rfid' ? (reader.connected ? 'Waiting for ACR122U card…' : 'Enter RFID UID manually') : 'Scan barcode here'} buttonLabel="Search" onScan={search} autoFocus={type === 'barcode' || !reader.connected} /><Feedback message={error} onClose={() => setError('')} /></section>
+      {type === 'rfid' && <div className={`reader-status ${reader.connected || phoneNfc.active ? 'connected' : 'disconnected'}`}><div>{reader.connected || phoneNfc.active ? <Radio /> : <Usb />}<span><strong>{reader.connected ? 'ACR122U connected' : phoneNfc.active ? 'Phone NFC scanning' : 'NFC reader offline'}</strong><small>{reader.connected || phoneNfc.active ? 'Tap a mapped card to open the student profile automatically.' : reader.error || 'Connect the reader and start the reader agent on this computer.'}</small></span></div><b>{reader.connected || phoneNfc.active ? 'Waiting for card' : 'Offline'}</b></div>}
+      {type === 'rfid' && phoneNfc.supported && <button className="button" type="button" onClick={phoneNfc.active ? phoneNfc.stop : phoneNfc.start}>{phoneNfc.active ? 'Stop phone NFC scan' : 'Start phone NFC scan'}</button>}
+      <ScannerInput key={type} label={`Scan ${type === 'rfid' ? 'RFID card' : 'barcode'}`} hint={type === 'rfid' && reader.connected ? 'The ACR122U will capture the UID automatically' : 'The student profile opens automatically after submit'} placeholder={type === 'rfid' ? (reader.connected || phoneNfc.active ? 'Waiting for NFC card…' : 'Enter RFID UID manually') : 'Scan barcode here'} buttonLabel="Search" onScan={search} autoFocus={type === 'barcode' || (!reader.connected && !phoneNfc.active)} /><Feedback message={error || phoneNfc.error} onClose={() => { setError(''); phoneNfc.clearError(); }} /></section>
     {student && <StudentModal
       student={student}
       onClose={finishSearch}

@@ -2,6 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' :
 const READER_AGENT_URL = 'http://127.0.0.1:3217/status';
 
 async function readerStatus(after) {
+  if (window.desktopApi) return window.desktopApi.readerStatus(after);
   try {
     const response = await fetch(`${READER_AGENT_URL}?after=${encodeURIComponent(after)}`, {
       signal: AbortSignal.timeout(600),
@@ -20,6 +21,24 @@ async function readerStatus(after) {
 }
 
 async function request(path, options = {}) {
+  if (window.desktopApi) {
+    const details = { path, method: options.method || 'GET', contentType: options.headers?.['Content-Type'] };
+    if (options.body instanceof FormData) {
+      details.form = await Promise.all([...options.body.entries()].map(async ([name, value]) => value instanceof File
+        ? { name, file: true, filename: value.name, mime: value.type, bytes: new Uint8Array(await value.arrayBuffer()) }
+        : { name, value }));
+    } else {
+      details.body = options.body;
+    }
+    const { status, body } = await window.desktopApi.request(details);
+    if (status >= 400) {
+      if (status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('auth:expired'));
+      const error = new Error(body.message || 'Something went wrong.');
+      error.status = status;
+      throw error;
+    }
+    return body;
+  }
   const response = await fetch(`${API_URL}${path}`, { credentials: 'include', ...options });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {

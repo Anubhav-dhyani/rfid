@@ -2,15 +2,42 @@
   "name": "student-identity-system",
   "private": true,
   "version": "1.0.0",
+  "main": "desktop/main.cjs",
   "workspaces": ["backend", "frontend", "reader-agent"],
   "scripts": {
     "dev": "concurrently -n API,WEB -c blue,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "build": "npm run build -w frontend",
     "start": "npm run start -w backend",
     "reader": "npm run start -w reader-agent",
+    "desktop": "npm run build && electron .",
+    "desktop:build:win": "npm run build && electron-builder --win nsis --x64",
     "test": "npm run test -w backend"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "electron": "44.4.3",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "ac.in.geu.identifi",
+    "productName": "IdentiFi",
+    "directories": {
+      "output": "desktop-release"
+    },
+    "files": [
+      "desktop/**/*",
+      "frontend/dist/**/*",
+      "backend/src/services/nfcReaderService.js",
+      "backend/package.json",
+      "package.json"
+    ],
+    "asarUnpack": ["**/*.node"],
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

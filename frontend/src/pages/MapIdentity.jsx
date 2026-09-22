@@ -5,6 +5,7 @@ import Feedback from '../components/Feedback';
 import ScannerInput from '../components/ScannerInput';
 import StudentCard from '../components/StudentCard';
 import { api } from '../lib/api';
+import { usePhoneNfc } from '../lib/usePhoneNfc';
 
 export default function MapIdentity({ type }) {
   return type === 'rfid' ? <RfidAssignment /> : <BarcodeMapping />;
@@ -42,6 +43,7 @@ function RfidAssignment() {
   const [students, setStudents] = useState({ items: [], total: 0, page: 1, pages: 0 });
   const [query, setQuery] = useState(''); const [page, setPage] = useState(1); const [student, setStudent] = useState(null); const [rfid, setRfid] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [reader, setReader] = useState({ connected: false, readerName: null, error: null });
+  const phoneNfc = usePhoneNfc(setRfid);
   const captureAfter = useRef(Date.now());
   useEffect(() => {
     if (!requestedStudentId || preselectionHandled.current) return;
@@ -91,12 +93,12 @@ function RfidAssignment() {
     catch (e) { setError(e.message); } finally { setBusy(false); }
   };
   return <><div className="page-title"><div><span className="eyebrow">Step 3 of 3</span><h1>Assign RFID card</h1><p>Select a barcode-mapped student, verify their details, then tap the RFID card.</p></div></div>
-    <Feedback message={error} onClose={() => setError('')} />
-    <div className={`reader-status ${reader.connected ? 'connected' : 'disconnected'}`}><div>{reader.connected ? <Radio /> : <Usb />}<span><strong>{reader.connected ? 'NFC reader connected' : 'NFC reader not connected'}</strong><small>{reader.connected ? reader.readerName : reader.error || 'Connect the ACR122U and start the reader agent on this computer.'}</small></span></div><b>{reader.connected ? 'Ready for card' : 'Offline'}</b></div>
+    <Feedback message={error || phoneNfc.error} onClose={() => { setError(''); phoneNfc.clearError(); }} />
+    <div className={`reader-status ${reader.connected || phoneNfc.active ? 'connected' : 'disconnected'}`}><div>{reader.connected || phoneNfc.active ? <Radio /> : <Usb />}<span><strong>{reader.connected ? 'NFC reader connected' : phoneNfc.active ? 'Phone NFC scanning' : 'NFC reader not connected'}</strong><small>{reader.connected ? reader.readerName : phoneNfc.active ? 'Tap an NDEF-compatible card on your phone.' : reader.error || 'Connect the ACR122U and start the reader agent on this computer.'}</small></span></div><b>{reader.connected || phoneNfc.active ? 'Ready for card' : 'Offline'}</b></div>
     {!student ? <section className="panel"><div className="toolbar"><div className="searchbox"><Search /><input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search barcode-mapped students" /></div></div>
       <div className="select-students">{students.items.map((item) => <button key={item._id} onClick={() => selectStudent(item)}><span><strong>{item.name}</strong><small>{item.studentId} · {item.className || item.excelData?.find((field) => field.column === 'Course')?.value || 'Course not set'}</small></span><span><small>Barcode</small><b>{item.barcode.value}</b></span><em>{item.rfid?.value ? 'RFID assigned' : 'Select student'} →</em></button>)}</div>
       {!students.items.length && <div className="empty">No barcode-mapped students found. Complete barcode scanning first.</div>}
       {students.pages > 1 && <div className="pagination"><span>{students.total} barcode-mapped students</span><div><button disabled={page <= 1} onClick={() => setPage((v) => v - 1)}>Previous</button><strong>Page {page} of {students.pages}</strong><button disabled={page >= students.pages} onClick={() => setPage((v) => v + 1)}>Next</button></div></div>}
-    </section> : <section className="panel workflow-panel"><div className="workflow-number done">✓</div><div className="workflow-content"><button className="text-button back-selection" onClick={() => setStudent(null)}>← Choose another student</button><StudentCard student={student} /><div className="divider"/><h2>Tap the RFID card</h2><p>{reader.connected ? 'Hold the card on the ACR122U. Its UID will appear automatically below.' : 'The reader is offline. Connect it and start the reader agent on this computer, or enter the UID manually.'}</p><ScannerInput label="RFID UID" hint={`Current: ${student.rfid?.value || 'not assigned'} · manual fallback`} placeholder={reader.connected ? 'Waiting for ACR122U card…' : 'Enter RFID UID manually'} buttonLabel="Use UID" onScan={setRfid} autoFocus={!reader.connected} /><div className={`captured ${rfid ? 'card-ready' : ''}`}><span>{rfid ? 'NFC card detected' : 'Captured RFID UID'}</span><strong>{rfid || (reader.connected ? 'Waiting for card tap…' : 'Reader offline')}</strong></div><button className="button primary wide" disabled={!rfid || busy} onClick={save}>{busy ? 'Saving…' : 'Confirm & save RFID assignment'}</button></div></section>}
+    </section> : <section className="panel workflow-panel"><div className="workflow-number done">✓</div><div className="workflow-content"><button className="text-button back-selection" onClick={() => setStudent(null)}>← Choose another student</button><StudentCard student={student} /><div className="divider"/><h2>Tap the RFID card</h2><p>{reader.connected ? 'Hold the card on the ACR122U. Its UID will appear automatically below.' : 'Use phone NFC if supported, connect a local ACR122U reader, or enter the UID manually.'}</p>{phoneNfc.supported && <button className="button" type="button" onClick={phoneNfc.active ? phoneNfc.stop : phoneNfc.start}>{phoneNfc.active ? 'Stop phone NFC scan' : 'Start phone NFC scan'}</button>}<ScannerInput label="RFID UID" hint={`Current: ${student.rfid?.value || 'not assigned'} · manual fallback`} placeholder={reader.connected || phoneNfc.active ? 'Waiting for NFC card…' : 'Enter RFID UID manually'} buttonLabel="Use UID" onScan={setRfid} autoFocus={!reader.connected && !phoneNfc.active} /><div className={`captured ${rfid ? 'card-ready' : ''}`}><span>{rfid ? 'NFC card detected' : 'Captured RFID UID'}</span><strong>{rfid || (reader.connected || phoneNfc.active ? 'Waiting for card tap…' : 'Reader offline')}</strong></div><button className="button primary wide" disabled={!rfid || busy} onClick={save}>{busy ? 'Saving…' : 'Confirm & save RFID assignment'}</button></div></section>}
   </>;
 }
