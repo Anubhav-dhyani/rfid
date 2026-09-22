@@ -42,3 +42,14 @@ test('invalid admin credentials are rejected', () => withServer(async (url) => {
   });
   assert.equal(response.status, 401);
 }));
+
+test('desktop installer availability is public and missing installer is not served', () => withServer(async (url) => {
+  const availability = await fetch(`${url}/desktop-download`);
+  assert.equal(availability.status, 200);
+  const { available, url: downloadUrl } = await availability.json();
+  assert.equal(downloadUrl, '/downloads/IdentiFi-Setup.exe');
+  if (!available) {
+    const download = await fetch(new URL(downloadUrl, url));
+    assert.equal(download.status, 404);
+  }
+}));

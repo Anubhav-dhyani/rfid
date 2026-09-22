@@ -1,5 +1,7 @@
 {
   "name": "student-identity-system",
+  "description": "IdentiFi student identity and RFID management",
+  "author": "GEU",
   "private": true,
   "version": "1.0.0",
   "main": "desktop/main.cjs",
@@ -12,6 +14,9 @@
     "desktop": "npm run build && electron .",
     "desktop:build:win": "npm run build && electron-builder --win nsis --x64",
     "test": "npm run test -w backend"
+  },
+  "dependencies": {
+    "smartcard": "^3.7.2"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

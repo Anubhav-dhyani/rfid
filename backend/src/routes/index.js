@@ -7,8 +7,12 @@ import { assignRfid, mapBarcode, searchIdentity, unassign } from '../controllers
 import { currentAdmin, login, logout } from '../controllers/authController.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { readerStatus } from '../controllers/nfcReaderController.js';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const router = Router();
+const desktopInstaller = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../downloads/IdentiFi-Setup.exe');
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -19,6 +23,10 @@ const upload = multer({
 });
 
 router.get('/health', (_req, res) => res.json({ status: 'ok' }));
+router.get('/desktop-download', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ available: existsSync(desktopInstaller), url: '/downloads/IdentiFi-Setup.exe' });
+});
 router.post('/auth/login', asyncHandler(login));
 router.use(requireAdmin);
 router.get('/auth/me', asyncHandler(currentAdmin));

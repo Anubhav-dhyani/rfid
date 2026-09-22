@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Feedback from '../components/Feedback';
 import { useAuth } from '../context/AuthContext';
+import DesktopDownload from '../components/DesktopDownload';
 
 export default function Login() {
   const { admin, login } = useAuth();
@@ -30,7 +31,7 @@ export default function Login() {
       <div><span className="eyebrow">Secure administration</span><h1>One identity.<br/>Every student.</h1><p>Import master records, map barcodes, assign RFID cards, and retrieve verified student information instantly.</p></div>
       <div className="login-assurance"><ShieldCheck /><span><strong>Protected operations</strong><small>Credentials are verified only by the backend.</small></span></div>
     </section>
-    <section className="login-form-wrap">
+    <section className="login-form-wrap"><div className="login-stack">
       <form className="login-card" onSubmit={submit}>
         <span className="eyebrow">Administrator access</span><h2>Welcome back</h2><p>Sign in using the credentials configured on the server.</p>
         <Feedback message={error} onClose={() => setError('')} />
@@ -39,6 +40,7 @@ export default function Login() {
         <button className="button primary wide" disabled={busy}>{busy ? 'Signing in…' : 'Sign in securely'}</button>
         <small className="login-help">Login values come from <code>backend/.env</code> and are never sent to the browser.</small>
       </form>
-    </section>
+      <DesktopDownload />
+    </div></section>
   </main>;
 }

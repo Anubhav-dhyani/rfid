@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { Barcode, ContactRound, LayoutDashboard, Radio, Search, Upload, Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import DesktopDownload from './DesktopDownload';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,7 +23,7 @@ export default function Layout() {
       <nav>{links.map(({ to, label, icon: Icon }) =>
         <NavLink key={to} to={to} end={to === '/'} onClick={() => setOpen(false)}><Icon size={19} />{label}</NavLink>
       )}</nav>
-      <div className="sidebar-foot"><span className="status-dot" />System ready<small>MongoDB connected through API</small></div>
+      <div className="sidebar-foot"><DesktopDownload compact /><span className="status-dot" />System ready<small>MongoDB connected through API</small></div>
     </aside>
     {open && <div className="scrim" onClick={() => setOpen(false)} />}
     <main>

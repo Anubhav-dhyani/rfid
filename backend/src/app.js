@@ -15,6 +15,12 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use(morgan('dev'));
+  const desktopInstaller = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../downloads/IdentiFi-Setup.exe');
+  app.get('/downloads/IdentiFi-Setup.exe', (_req, res) => {
+    if (!existsSync(desktopInstaller)) return res.status(404).send('Windows installer is not available yet.');
+    res.set('Cache-Control', 'no-store');
+    return res.download(desktopInstaller, 'IdentiFi-Setup.exe');
+  });
   app.use('/api', routes);
   app.use('/api', (_req, res) => res.status(404).json({ message: 'Route not found.' }));
 

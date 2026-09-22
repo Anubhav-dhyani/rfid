@@ -43,7 +43,7 @@ async function serveApp(request) {
   const contentType = MIME[path.extname(filePath)] || 'application/octet-stream';
   return new Response(contents, { headers: {
     'content-type': contentType,
-    'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+    'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'none'"
   } });
 }
 
