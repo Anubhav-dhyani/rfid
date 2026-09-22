@@ -1,6 +1,6 @@
 import { Radio, Search, Usb } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Feedback from '../components/Feedback';
 import ScannerInput from '../components/ScannerInput';
 import StudentCard from '../components/StudentCard';
@@ -36,10 +36,26 @@ function BarcodeMapping() {
 
 function RfidAssignment() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedStudentId = location.state?.studentId;
+  const preselectionHandled = useRef(false);
   const [students, setStudents] = useState({ items: [], total: 0, page: 1, pages: 0 });
   const [query, setQuery] = useState(''); const [page, setPage] = useState(1); const [student, setStudent] = useState(null); const [rfid, setRfid] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [reader, setReader] = useState({ connected: false, readerName: null, error: null });
   const captureAfter = useRef(Date.now());
+  useEffect(() => {
+    if (!requestedStudentId || preselectionHandled.current) return;
+    preselectionHandled.current = true;
+    captureAfter.current = Date.now();
+    api.student(requestedStudentId)
+      .then((selectedStudent) => {
+        if (!selectedStudent.barcode?.value) throw new Error('This student does not have a mapped barcode yet.');
+        setStudent(selectedStudent);
+        setRfid('');
+        navigate('/rfid', { replace: true, state: null });
+      })
+      .catch((requestError) => setError(requestError.message));
+  }, [requestedStudentId, navigate]);
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => api.students(new URLSearchParams({ q: query, page, limit: 10, barcodeStatus: 'mapped' })).then((data) => { if (active) setStudents(data); }).catch((e) => { if (active) setError(e.message); }), 200);
