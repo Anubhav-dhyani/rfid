@@ -12,6 +12,24 @@ const state = {
 
 let devices;
 let started = false;
+const UID_COMMAND = Buffer.from([0xff, 0xca, 0x00, 0x00, 0x00]);
+
+export async function readCardUid(card) {
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await card.transmit(UID_COMMAND);
+      if (response.length < 3 || response.at(-2) !== 0x90 || response.at(-1) !== 0x00) {
+        throw new Error(`Reader returned ${response.toString('hex').toUpperCase()}`);
+      }
+      return response.subarray(0, -2).toString('hex').toUpperCase();
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+  }
+  throw lastError;
+}
 
 export function startNfcReader() {
   state.enabled = process.env.NFC_READER_ENABLED !== 'false';
@@ -34,11 +52,7 @@ export function startNfcReader() {
     });
     devices.on('card-inserted', async ({ reader, card }) => {
       try {
-        const response = await card.transmit(Buffer.from([0xff, 0xca, 0x00, 0x00, 0x00]));
-        if (response.length < 3 || response.at(-2) !== 0x90 || response.at(-1) !== 0x00) {
-          throw new Error(`Reader returned ${response.toString('hex').toUpperCase()}`);
-        }
-        const uid = response.subarray(0, -2).toString('hex').toUpperCase();
+        const uid = await readCardUid(card);
         state.lastCard = { uid, readerName: reader.name, detectedAt: Date.now() };
         state.error = null;
         console.log(`NFC card detected on ${reader.name}: ${uid}`);

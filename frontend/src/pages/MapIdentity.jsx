@@ -65,6 +65,7 @@ function RfidAssignment() {
   }, [query, page]);
   useEffect(() => {
     let active = true;
+    let timer;
     const poll = async () => {
       try {
         const status = await api.rfidReaderStatus(captureAfter.current);
@@ -76,11 +77,12 @@ function RfidAssignment() {
         }
       } catch (requestError) {
         if (active) setReader((current) => ({ ...current, connected: false, error: requestError.message }));
+      } finally {
+        if (active) timer = setTimeout(poll, window.desktopApi ? 250 : 700);
       }
     };
     poll();
-    const timer = setInterval(poll, 700);
-    return () => { active = false; clearInterval(timer); };
+    return () => { active = false; clearTimeout(timer); };
   }, [student?._id]);
   const selectStudent = (item) => { captureAfter.current = Date.now(); setStudent(item); setRfid(''); setError(''); };
   const save = async () => {

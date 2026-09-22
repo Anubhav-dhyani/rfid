@@ -3,7 +3,7 @@
   "description": "IdentiFi student identity and RFID management",
   "author": "GEU",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "desktop/main.cjs",
   "workspaces": ["backend", "frontend", "reader-agent"],
   "scripts": {

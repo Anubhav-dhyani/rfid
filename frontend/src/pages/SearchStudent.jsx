@@ -31,6 +31,7 @@ export default function SearchStudent() {
     if (type !== 'rfid') return undefined;
     captureAfter.current = Date.now();
     let active = true;
+    let timer;
     const poll = async () => {
       try {
         const status = await api.rfidReaderStatus(captureAfter.current);
@@ -42,11 +43,12 @@ export default function SearchStudent() {
         }
       } catch (requestError) {
         if (active) setReader((current) => ({ ...current, connected: false, error: requestError.message }));
+      } finally {
+        if (active) timer = setTimeout(poll, window.desktopApi ? 250 : 700);
       }
     };
     poll();
-    const timer = setInterval(poll, 700);
-    return () => { active = false; clearInterval(timer); };
+    return () => { active = false; clearTimeout(timer); };
   }, [type]);
 
   const changeType = (nextType) => {
