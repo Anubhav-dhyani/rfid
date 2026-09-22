@@ -12,7 +12,7 @@
     "start": "npm run start -w backend",
     "reader": "npm run start -w reader-agent",
     "desktop": "npm run build && electron .",
-    "desktop:build:win": "npm run build && electron-builder --win nsis --x64",
+    "desktop:build:win": "npm run build && electron-builder --win nsis --x64 --publish never",
     "test": "npm run test -w backend"
   },
   "dependencies": {
