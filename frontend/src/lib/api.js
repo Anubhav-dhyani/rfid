@@ -1,4 +1,23 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+const READER_AGENT_URL = 'http://127.0.0.1:3217/status';
+
+async function readerStatus(after) {
+  try {
+    const response = await fetch(`${READER_AGENT_URL}?after=${encodeURIComponent(after)}`, {
+      signal: AbortSignal.timeout(600),
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Reader agent unavailable');
+    return await response.json();
+  } catch {
+    const serverStatus = await request(`/rfid-reader/status?after=${encodeURIComponent(after)}`);
+    if (serverStatus.connected) return serverStatus;
+    return {
+      ...serverStatus,
+      error: 'Start the RFID reader agent on this computer and connect the ACR122U.'
+    };
+  }
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, { credentials: 'include', ...options });
@@ -29,6 +48,6 @@ export const api = {
   assignRfid: (studentId, value) => request('/rfid/assign', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId, value })
   }),
-  rfidReaderStatus: (after = 0) => request(`/rfid-reader/status?after=${encodeURIComponent(after)}`),
+  rfidReaderStatus: readerStatus,
   searchIdentity: (type, value) => request(`/search/${type}/${encodeURIComponent(value)}`)
 };
